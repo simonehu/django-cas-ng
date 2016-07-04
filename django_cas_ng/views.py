@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 
 from django.utils.six.moves import urllib_parse
 from django.conf import settings
-from django.http import HttpResponseRedirect, HttpResponseForbidden
+from django.http import HttpResponseRedirect, HttpResponseForbidden, HttpResponseNotFound
 from django.http import HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -25,12 +25,12 @@ SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
 from datetime import timedelta
 
 from .signals import cas_user_logout
-from .models import ProxyGrantingTicket, SessionTicket
+from .models import ProxyGrantingTicket, SessionTicket, ProxyError
 from .utils import (get_cas_client, get_service_url,
                     get_protocol, get_redirect_url,
                     get_user_from_session)
 
-__all__ = ['login', 'logout', 'callback']
+__all__ = ['login', 'logout', 'callback', 'proxy']
 
 
 @csrf_exempt
@@ -149,6 +149,38 @@ def callback(request):
             date__lt=(timezone.now() - timedelta(seconds=60))
         ).delete()
         return HttpResponse("{0}\n".format(_('ok')), content_type="text/plain")
+
+
+@require_http_methods(["GET"])
+def proxy(request, function=None):
+    target_service = request.GET.get('service')
+    proxy_ticket = request.GET.get('ticket')
+    if target_service:
+        try:
+            proxy_ticket = ProxyGrantingTicket.retrieve_pt(request, target_service)
+        except ProxyError as err:
+            error = "<h1>{0}</h1><p>{1}</p>".format(_('Forbidden'), _(str(err)))
+            return HttpResponseForbidden(error)
+        params = urllib_parse.urlencode({'ticket': proxy_ticket})
+        if '?' in target_service:
+            proxy_url = target_service + "&" + params
+        else:
+            proxy_url = target_service + "?" + params
+        return HttpResponseRedirect(proxy_url)
+    elif proxy_ticket:
+        service_url = get_service_url(request)
+        user = authenticate(ticket=proxy_ticket, service=service_url, request=request, proxy=True)
+        if user is not None and function is not None:
+            return function(request, user)
+        elif function is None:
+            error = "<h1>{0}</h1><p>{1}</p>".format(_('Error'), _('No proxy function implemented.'))
+            return HttpResponseNotFound(error)
+        else:
+            error = "<h1>{0}</h1><p>{1}</p>".format(_('Forbidden'), _('Proxy failed.'))
+            return HttpResponseForbidden(error)
+    else:
+        return HttpResponse("{0}\n".format(_('Nothing')), content_type="text/plain")
+
 
 
 def clean_sessions(client, request):

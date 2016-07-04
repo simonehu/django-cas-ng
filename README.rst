@@ -17,6 +17,7 @@ Features
 - Supports CAS_ versions 1.0, 2.0 and 3.0.
 - `Support Single Sign Out`_
 - Can fetch Proxy Granting Ticket
+- Can fetch and validate Proxy Ticket
 - Supports Django 1.5, 1.6, 1.7 and 1.8 with `User custom model`_
 - Supports Python 2.7, 3.x
 
@@ -234,13 +235,40 @@ Sent on user logout. Will be fire over manual logout or logout via CAS SingleLog
   The ticket used to authenticate the user with the CAS. (if found, else valeu if set to ``None``)
 
 
-Proxy Granting Ticket
----------------------
+Proxying
+--------
 
-If you want your application to be able to issue Proxy Ticket to authenticate against some other CAS application,
+If you want your application to be able to issue Proxy Tickets to authenticate against some other CAS application,
 setup the CAS_PROXY_CALLBACK parameter.
 Allow on the CAS config django_cas_ng to act as a Proxy application.
-Then after a user has logged in using the CAS, you can retrieve a Proxy Ticket as follow:
+
+* If you want your application to be able to proxy with some other CAS application, add the following URL mapping::
+
+      url(r'^accounts/proxy$', django_cas_ng.views.proxy, name='cas_ng_proxy'),
+
+* If you also want other CAS applications to be able to proxy with your application, modify the previous URL mapping to::
+
+      url(r'^accounts/proxy$', django_cas_ng.views.proxy, {'function': your-after-proxy-function}, name='cas_ng_proxy'),
+
+  and implement ``your-after-proxy-function`` which is the function you want to call after a proxied user is successfully authenticated, defined as follows::
+
+    def your-after-proxy-function(request, user):
+        ...
+        return HTTPResponse(...)
+
+* To proxy a target service you would call ``/accounts/proxy?service=https://target-service-proxy-validate-url/``
+  where ``target-service-proxy-validate-url`` is a url that can validate a proxy ticket given by the variable ``ticket``
+  (e.g. https://target-service-url/accounts/proxy for services using django_cas_ng).
+
+* To validate a given proxy ticket, you would call ``/accounts/proxy?ticket=your-proxy-ticket``.
+  This is automatically redirected to with the correct ticket after successfully calling
+  ``/accounts/proxy?service=https://your-website-url/accounts/proxy`` from a service using django_cas_ng.
+
+
+Custom Proxying
+---------------
+
+After a user has logged in using the CAS, you can retrieve a Proxy Ticket as follows::
 
     from django_cas_ng.models import ProxyGrantingTicket
 
@@ -313,6 +341,7 @@ Credits
 * `Wojciech Rygielski`_
 * `Valentin Samir`_
 * `Alexander Kavanaugh`_
+* `Simone Hu`_
 
 References
 ----------
@@ -346,3 +375,4 @@ References
 .. _Wojciech Rygielski: https://github.com/wrygiel
 .. _Valentin Samir: https://github.com/nitmir
 .. _Alexander Kavanaugh: https://github.com/kavdev
+.. _Simone Hu: https://github.com/simonehu
