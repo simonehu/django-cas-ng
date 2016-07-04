@@ -11,7 +11,8 @@ SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
 
 
 class ProxyError(ValueError):
-    pass
+    def __str__(self):
+       return  " ".join(map(str, self.args))
 
 
 class ProxyGrantingTicket(models.Model):
@@ -58,9 +59,9 @@ class ProxyGrantingTicket(models.Model):
             # change CASError to ProxyError nicely
             except CASError as error:
                 raise ProxyError(*error.args)
-            # juste embed other errors
+            # just embed other errors
             except Exception as e:
-                raise ProxyError(e)
+                raise ProxyError(*e.args)
 
 
 class SessionTicket(models.Model):
