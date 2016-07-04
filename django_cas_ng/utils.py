@@ -42,9 +42,9 @@ def get_service_url(request, redirect_to=None):
         service += '&'
     else:
         service += '?'
-    service += urllib_parse.urlencode({
+    service += urllib_parse.unquote(urllib_parse.urlencode({
         REDIRECT_FIELD_NAME: redirect_to or get_redirect_url(request)
-    })
+    }))
     return service
 
 

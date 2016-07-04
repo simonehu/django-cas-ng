@@ -10,7 +10,7 @@ def test_service_url_helper():
     request = factory.get('/login/')
 
     actual = get_service_url(request)
-    expected = 'http://testserver/login/?next=%2F'
+    expected = 'http://testserver/login/?next=/'
 
     assert actual == expected
 
@@ -21,7 +21,7 @@ def test_service_url_helper_as_https():
     request = factory.get('/login/', **kwargs)
 
     actual = get_service_url(request)
-    expected = 'https://testserver/login/?next=%2F'
+    expected = 'https://testserver/login/?next=/'
 
     assert actual == expected
 
@@ -31,7 +31,7 @@ def test_service_url_helper_with_redirect():
     request = factory.get('/login/')
 
     actual = get_service_url(request, redirect_to='http://testserver/landing-page/')
-    expected = 'http://testserver/login/?next=http%3A%2F%2Ftestserver%2Flanding-page%2F'
+    expected = 'http://testserver/login/?next=http://testserver/landing-page/'
 
     assert actual == expected
 
@@ -41,7 +41,7 @@ def test_service_url_preserves_query_parameters():
     request = factory.get('/login/?foo=bar', secure=True)
 
     actual = get_service_url(request, redirect_to='https://testserver/landing-page/')
-    assert 'next=https%3A%2F%2Ftestserver%2Flanding-page%2F' in actual
+    assert 'next=https://testserver/landing-page/' in actual
 
 
 #
