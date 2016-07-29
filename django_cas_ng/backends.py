@@ -36,6 +36,16 @@ class CASBackend(ModelBackend):
 
         try:
             user = User.objects.get(**{User.USERNAME_FIELD: username})
+            if attributes:
+                for attr, value in attributes.iteritems():
+                    if value is None:
+                        value = ''
+                    elif value == 'True':
+                        value = True
+                    elif value == 'False':
+                        value = False
+                    setattr(user, attr, value)
+            user.save()
             created = False
         except User.DoesNotExist:
             # check if we want to create new users, if we don't fail auth
@@ -43,6 +53,15 @@ class CASBackend(ModelBackend):
                 return None
             # user will have an "unusable" password
             user = User.objects.create_user(username, '')
+            if attributes:
+                for attr, value in attributes.iteritems():
+                    if value is None:
+                        value = ''
+                    elif value == 'True':
+                        value = True
+                    elif value == 'False':
+                        value = False
+                    setattr(user, attr, value)
             user.save()
             created = True
 
